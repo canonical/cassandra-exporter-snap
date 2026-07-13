@@ -1,0 +1,75 @@
+name: cassandra-exporter
+title: Cassandra Exporter
+version: '2.3.8'
+license: Apache-2.0
+website: https://github.com/criteo/cassandra_exporter
+source-code: https://github.com/canonical/cassandra-exporter-snap
+issues: https://github.com/canonical/cassandra-exporter-snap/issues
+summary: Prometheus Cassandra Exporter
+description: |
+  The Cassandra Exporter connects to Cassandra's JMX port and exports metrics
+  as Prometheus metrics. It must run on every Cassandra node.
+
+  Key features:
+  - Exports Cassandra JMX metrics as Prometheus metrics
+  - Configurable JMX connection and metric blacklisting
+  - Supports Cassandra 2.2.x, 3.x, and 4.x
+
+  Default ports:
+  - Metrics endpoint: 8080
+  - Cassandra JMX (target): 7199
+
+  Configuration:
+  - snap set cassandra-exporter cassandra.host=localhost:7199
+  - snap set cassandra-exporter web.listen-port=8080
+  - snap set cassandra-exporter cassandra.user=jmxuser
+  - snap set cassandra-exporter cassandra.password=jmxpassword
+
+  The exporter config file is stored at: $SNAP_COMMON/config.yml
+
+contact: snapstore@canonical.com
+base: core24
+platforms:
+  amd64:
+  arm64:
+confinement: strict
+
+apps:
+  cassandra-exporter:
+    daemon: simple
+    command: command-wrapper
+    install-mode: disable
+    restart-condition: on-failure
+    plugs:
+      - network
+      - network-bind
+
+parts:
+  wrapper:
+    plugin: dump
+    source: ./snap
+    source-type: local
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/meta/hooks
+      mkdir -p $CRAFT_PART_INSTALL/etc
+      cp local/command-wrapper $CRAFT_PART_INSTALL/
+      chmod +x $CRAFT_PART_INSTALL/command-wrapper
+      cp local/default-config.yml $CRAFT_PART_INSTALL/etc/default-config.yml
+      cp hooks/configure $CRAFT_PART_INSTALL/meta/hooks/configure
+      chmod +x $CRAFT_PART_INSTALL/meta/hooks/configure
+      cp hooks/default-configure $CRAFT_PART_INSTALL/meta/hooks/default-configure
+      chmod +x $CRAFT_PART_INSTALL/meta/hooks/default-configure
+
+  cassandra-exporter:
+    plugin: nil
+    build-packages:
+      - curl
+    override-pull: |
+      version="2.3.8"
+      curl -Lo "$CRAFT_PART_SRC/cassandra_exporter.jar" \
+        "https://github.com/criteo/cassandra_exporter/releases/download/${version}/cassandra_exporter-${version}.jar"
+    override-build: |
+      install -Dm644 "$CRAFT_PART_SRC/cassandra_exporter.jar" \
+        "$CRAFT_PART_INSTALL/jar/cassandra_exporter.jar"
+    stage-packages:
+      - default-jre-headless

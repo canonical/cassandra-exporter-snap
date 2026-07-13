@@ -1,0 +1,49 @@
+host: localhost:7199
+ssl: false
+user:
+password:
+listenAddress: 0.0.0.0
+listenPort: 8080
+
+blacklist:
+  # Inaccessible metrics (not enough privilege)
+  - java:lang:memorypool:.*usagethreshold.*
+
+  # Leaf attributes not interesting but present in many paths (reduce cardinality)
+  - .*:999thpercentile
+  - .*:95thpercentile
+  - .*:fifteenminuterate
+  - .*:fiveminuterate
+  - .*:durationunit
+  - .*:rateunit
+  - .*:stddev
+  - .*:meanrate
+  - .*:mean
+  - .*:min
+
+  # Path present in many metrics but uninteresting
+  - .*:viewlockacquiretime:.*
+  - .*:viewreadtime:.*
+  - .*:cas[a-z]+latency:.*
+  - .*:colupdatetimedeltahistogram:.*
+
+  # Mostly for RPC, do not scrape them
+  - org:apache:cassandra:db:.*
+
+  # columnfamily is an alias for Table metrics in Cassandra 3.x
+  - org:apache:cassandra:metrics:columnfamily:.*
+
+  # Skip system keyspace metrics
+  - org:apache:cassandra:metrics:[^:]+:system[^:]*:.*
+
+  # Don't scrape the exporter itself
+  - com:criteo:nosql:cassandra:exporter:.*
+
+maxScrapFrequencyInSec:
+  50:
+    - .*
+  # Refresh expensive metrics only every hour
+  3600:
+    - .*:snapshotssize:.*
+    - .*:estimated.*
+    - .*:totaldiskspaceused:.*

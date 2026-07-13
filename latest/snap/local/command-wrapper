@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+
+CONFIG_FILE="$SNAP_COMMON/config.yml"
+
+# Copy default config on first run if not present
+if [ ! -f "$CONFIG_FILE" ]; then
+    cp "$SNAP/etc/default-config.yml" "$CONFIG_FILE"
+fi
+
+# Apply configuration from snap config via environment variable overrides
+CASSANDRA_HOST=$(snapctl get cassandra.host)
+WEB_PORT=$(snapctl get web.listen-port)
+CASSANDRA_USER=$(snapctl get cassandra.user)
+CASSANDRA_PASSWORD=$(snapctl get cassandra.password)
+
+if [ -n "$CASSANDRA_HOST" ]; then
+    export CASSANDRA_EXPORTER_CONFIG_host="$CASSANDRA_HOST"
+fi
+
+if [ -n "$WEB_PORT" ]; then
+    export CASSANDRA_EXPORTER_CONFIG_listenPort="$WEB_PORT"
+fi
+
+if [ -n "$CASSANDRA_USER" ]; then
+    export CASSANDRA_EXPORTER_CONFIG_user="$CASSANDRA_USER"
+fi
+
+if [ -n "$CASSANDRA_PASSWORD" ]; then
+    export CASSANDRA_EXPORTER_CONFIG_password="$CASSANDRA_PASSWORD"
+fi
+
+exec "$SNAP/usr/bin/java" -jar "$SNAP/jar/cassandra_exporter.jar" "$CONFIG_FILE"

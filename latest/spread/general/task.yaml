@@ -1,0 +1,18 @@
+summary: Install and verify cassandra-exporter snap
+
+execute: |
+  snap install --dangerous cassandra-exporter_*.snap
+
+  # Enable and start the service
+  snap start --enable cassandra-exporter
+
+  # Wait for service to start (Java startup takes longer)
+  sleep 5
+
+  # Verify the service is running
+  snap services cassandra-exporter | grep -q "active"
+
+  # Verify metrics endpoint is reachable (will show errors without Cassandra, but endpoint should respond)
+  curl -sf http://localhost:8080/metrics || curl -sf http://localhost:8080/
+
+  echo "✓ cassandra-exporter snap is working correctly"

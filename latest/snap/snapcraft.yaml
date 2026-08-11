@@ -65,7 +65,7 @@ parts:
     build-packages:
       - curl
     override-pull: |
-      version="2.3.8"
+      version="$CRAFT_PROJECT_VERSION"
       curl -Lo "$CRAFT_PART_SRC/cassandra_exporter.jar" \
         "https://github.com/criteo/cassandra_exporter/releases/download/${version}/cassandra_exporter-${version}.jar"
     override-build: |

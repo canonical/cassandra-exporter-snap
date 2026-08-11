@@ -8,26 +8,21 @@ if [ ! -f "$CONFIG_FILE" ]; then
     cp "$SNAP/etc/default-config.yml" "$CONFIG_FILE"
 fi
 
-# Apply configuration from snap config via environment variable overrides
-CASSANDRA_HOST=$(snapctl get cassandra.host)
-WEB_PORT=$(snapctl get web.listen-port)
-CASSANDRA_USER=$(snapctl get cassandra.user)
-CASSANDRA_PASSWORD=$(snapctl get cassandra.password)
+# Apply snap configuration into the config file. The upstream jar only reads
+# the on-disk config, so snap options must be written into it (mirrors the
+# upstream docker run.sh sed substitution) rather than passed via env vars.
+apply_config() {
+    local field="$1" value="$2"
+    [ -n "$value" ] || return 0
+    # Escape sed replacement metacharacters (\ / &) so arbitrary values are safe.
+    local escaped
+    escaped=$(printf '%s' "$value" | sed -e 's/[\/&]/\\&/g')
+    sed -ri "s/^(${field}):.*/\1: ${escaped}/" "$CONFIG_FILE"
+}
 
-if [ -n "$CASSANDRA_HOST" ]; then
-    export CASSANDRA_EXPORTER_CONFIG_host="$CASSANDRA_HOST"
-fi
+apply_config host "$(snapctl get cassandra.host)"
+apply_config listenPort "$(snapctl get web.listen-port)"
+apply_config user "$(snapctl get cassandra.user)"
+apply_config password "$(snapctl get cassandra.password)"
 
-if [ -n "$WEB_PORT" ]; then
-    export CASSANDRA_EXPORTER_CONFIG_listenPort="$WEB_PORT"
-fi
-
-if [ -n "$CASSANDRA_USER" ]; then
-    export CASSANDRA_EXPORTER_CONFIG_user="$CASSANDRA_USER"
-fi
-
-if [ -n "$CASSANDRA_PASSWORD" ]; then
-    export CASSANDRA_EXPORTER_CONFIG_password="$CASSANDRA_PASSWORD"
-fi
-
-exec "$SNAP/usr/bin/java" -jar "$SNAP/jar/cassandra_exporter.jar" "$CONFIG_FILE"
+exec "$SNAP/usr/lib/jvm/default-java/bin/java" -jar "$SNAP/jar/cassandra_exporter.jar" "$CONFIG_FILE"

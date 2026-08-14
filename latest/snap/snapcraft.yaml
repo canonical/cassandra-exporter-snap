@@ -64,6 +64,15 @@ parts:
     plugin: nil
     build-packages:
       - curl
+      # openjdk-*-jre-headless ships lib/security/cacerts as an absoulte symlink
+      # to /etc/ssl/certs/java/cacerts.
+      # That path only exists once ca-certificates-java's postinst has run with a JRE present.
+      # Installing default-jre-headless as a build-package makes apt pull in and fully
+      # install ca-certificates-java (with postinst) on the build instance, so
+      # the real truststore exists there before this part's stage-packages are
+      # unpacked. snapcraft then automatically dereferences the absolute
+      # symlink into a copied-in file + relative in-snap symlink.
+      - default-jre-headless
     override-pull: |
       version="$CRAFT_PROJECT_VERSION"
       curl -Lo "$CRAFT_PART_SRC/cassandra_exporter.jar" \
